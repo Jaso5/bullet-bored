@@ -6,13 +6,13 @@ mod game;
 mod util;
 mod render;
 
-use std::time::Instant;
+use std::{time::Instant, rc::{Rc, Weak}, sync::RwLock};
 
 use game::board::Board;
 use macroquad::prelude::*;
 use math::visualize_vec;
 use game::player::Player;
-use render::Renderer;
+use render::{Renderer, pipeline::PipelineObject, Renderable, base::BaseUniform};
 
 #[macroquad::main("Bullet Bored")]
 async fn main() {
@@ -27,13 +27,19 @@ async fn main() {
     };
 
     
-    let (mut board, mut player, mut renderer) = {
+    let (mut board, player, mut renderer) = {
         let InternalGlContext {
             quad_context: ctx, ..
         } = unsafe { get_internal_gl() };
 
         (Board::new(ctx), Player::new(ctx), Renderer::new(ctx))
     };
+    
+    let mut player = Rc::new(RwLock::new(player));
+    
+    renderer.add_object::<BaseUniform>(PipelineObject::Base(
+        Rc::downgrade(&player) as Weak<RwLock<dyn Renderable<BaseUniform>>>
+    ));
     
     let mut prev_time = Instant::now();
     
@@ -42,9 +48,13 @@ async fn main() {
         let dt = now.duration_since(prev_time).as_millis() as f32;
         prev_time = now;
         
-        let axis = get_movement_vec();
+        {
+            let mut player = player.write().unwrap();
+            
+            let axis = get_movement_vec();
         
-        let temp = player.movement(axis, board.bounds);
+            let temp = player.movement(axis, board.bounds);
+        }
         
         clear_background(BLACK);
         
@@ -54,16 +64,16 @@ async fn main() {
             gl.flush();
 
             board.render(&mut gl, dt, &cam);
-            player.render(&mut gl, dt, &cam);
+            // player.render(&mut gl, dt, &cam);
             
             renderer.render(&mut gl, dt, &cam);
             
             
             draw_text(get_fps().to_string().as_str(), 20.0, 20.0, 20.0, BLUE);
             
-            visualize_vec(Vec2::new(50.0, 50.0), player.target_direction * 50.0, RED);
-            visualize_vec(Vec2::new(50.0, 50.0), player.facing * 50.0, BLUE);
-            visualize_vec(Vec2::new(50.0, 50.0), temp * 50.0, GREEN);
+            // visualize_vec(Vec2::new(50.0, 50.0), player.target_direction * 50.0, RED);
+            // visualize_vec(Vec2::new(50.0, 50.0), player.facing * 50.0, BLUE);
+            // visualize_vec(Vec2::new(50.0, 50.0), temp * 50.0, GREEN);
         
         next_frame().await
     }

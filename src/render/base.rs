@@ -1,4 +1,4 @@
-use std::{fs, rc::{Weak, self}};
+use std::{fs, rc::{Weak, self}, sync::RwLock};
 
 use macroquad::{prelude::{Vec2, Vec4, Mat4, Camera3D, Camera}, window::InternalGlContext, rand};
 use miniquad::{Pipeline, Shader, ShaderMeta, UniformBlockLayout, UniformDesc, UniformType, ShaderError, BufferLayout, VertexAttribute, VertexFormat, PipelineParams};
@@ -9,7 +9,7 @@ use super::{Renderable, pipeline};
 
 pub struct BasePipeline {
     pipeline: Pipeline,
-    objects: Vec<Weak<dyn Renderable<BaseUniform>>>,
+    objects: Vec<Weak<RwLock<dyn Renderable<BaseUniform>>>>,
     t: f32,
     buzz_r: u32,
     buzz_mag: f32
@@ -56,9 +56,10 @@ impl BasePipeline {
         }
     }
     
-    fn render_obj(gl: &mut InternalGlContext, buzz_r: u32, buzz_mag: f32, obj: rc::Rc<dyn Renderable<BaseUniform>>, camera: &Camera3D) {
-        let info = obj.render_info();
+    fn render_obj(gl: &mut InternalGlContext, buzz_r: u32, buzz_mag: f32, obj: rc::Rc<RwLock<dyn Renderable<BaseUniform>>>, camera: &Camera3D) {
+        let obj = obj.read().unwrap();
         
+        let info = obj.render_info();
         let external_uniforms = obj.uniforms();
         
         let internal_uniforms = InternalUniform::from_external(
@@ -68,14 +69,14 @@ impl BasePipeline {
             buzz_r
         );
         
-        gl.quad_context.apply_bindings(info.bindings);
+        gl.quad_context.apply_bindings(&info.bindings);
         gl.quad_context.apply_uniforms(&internal_uniforms);
         gl.quad_context.draw(info.base_element, info.num_elements, info.num_instances);
     }
 }
 
 impl pipeline::Pipeline<BaseUniform> for BasePipeline {
-    fn add_object(&mut self, object: Weak<dyn Renderable<BaseUniform>>) {
+    fn add_object(&mut self, object: Weak<RwLock<dyn Renderable<BaseUniform>>>) {
         self.objects.push(object);
     }
     
@@ -129,7 +130,7 @@ struct InternalUniform {
 }
 
 impl InternalUniform {
-    pub fn from_external(other: &BaseUniform, camera: &Camera3D, buzz_mag: f32, buzz_r: u32) -> Self {
+    pub fn from_external(other: BaseUniform, camera: &Camera3D, buzz_mag: f32, buzz_r: u32) -> Self {
         Self {
             color: other.color,
             model_matrix: other.model_matrix,

@@ -4,7 +4,7 @@ use miniquad::Bindings;
 use self::{base::BasePipeline, pipeline::{Pipeline, PipelineObject}};
 
 pub mod base;
-mod pipeline;
+pub mod pipeline;
 
 
 pub struct Renderer {
@@ -32,12 +32,12 @@ impl Renderer {
 
 
 pub trait Renderable<U> {
-    fn uniforms(&self) -> &U;
+    fn uniforms(&self) -> U;
     fn render_info(&self) -> &RenderInfo;
 }
 
-pub struct RenderInfo<'a> {
-    pub bindings: &'a Bindings,
+pub struct RenderInfo {
+    pub bindings: Bindings,
     pub base_element: i32,
     pub num_elements: i32,
     pub num_instances: i32,
