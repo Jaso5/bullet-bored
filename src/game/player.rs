@@ -1,10 +1,9 @@
-use std::{f32::consts::PI};
-
-use macroquad::{prelude::{Vec2, Vec4, Mat4, Vec3, Rect}};
+use macroquad::prelude::{Vec2, Vec4, Mat4, Vec3, Rect};
 use miniquad::{Bindings, Buffer, BufferType};
 
-use crate::{math::{vec2_to_angle, ClampToRect}, render::{base::{BaseVertex, BaseUniform}, Renderable, RenderInfo}};
+use std::f32::consts::PI;
 
+use crate::{math::{vec2_to_angle, ClampToRect}, render::{base::{BaseVertex, BaseUniform}, Renderable, RenderInfo}};
 
 const ACCELERATION: f32 = 0.05;
 const DEACCELERATION: f32 = 0.1;

@@ -1,4 +1,7 @@
 pub mod vec_interop;
+pub mod validation;
+pub mod error;
+pub mod util;
 
 // use rhai::{AST, Engine, plugin::RhaiResult, Scope};
 

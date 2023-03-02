@@ -29,8 +29,6 @@ impl Renderer {
     }
 }
 
-
-
 pub trait Renderable<U> {
     fn uniforms(&self) -> U;
     fn render_info(&self) -> &RenderInfo;

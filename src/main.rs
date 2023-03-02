@@ -8,17 +8,16 @@ mod render;
 
 use std::{time::Instant, rc::{Rc, Weak}, sync::RwLock};
 
-use game::board::Board;
+use game::{board::Board, bullet::BulletType};
 use macroquad::prelude::*;
-use math::visualize_vec;
 use game::player::Player;
 use render::{Renderer, pipeline::PipelineObject, Renderable, base::BaseUniform};
 
 #[macroquad::main("Bullet Bored")]
 async fn main() {
     let cam = Camera3D {
-        position: Vec3::new(50.0, -50.0, 75.0),
-        // position: Vec3::new(50.0, 50.0, 150.0),
+        // position: Vec3::new(50.0, -50.0, 75.0),
+        position: Vec3::new(50.0, 50.0, 150.0),
         target: Vec3::new(50.0, 50.0, 0.0),
         up: Vec3::new(0.0,1.0,0.0),
         fovy: 70.0,
@@ -27,7 +26,7 @@ async fn main() {
     };
 
     
-    let (mut board, player, mut renderer) = {
+    let (board, player, mut renderer) = {
         let InternalGlContext {
             quad_context: ctx, ..
         } = unsafe { get_internal_gl() };
@@ -35,11 +34,17 @@ async fn main() {
         (Board::new(ctx), Player::new(ctx), Renderer::new(ctx))
     };
     
-    let mut player = Rc::new(RwLock::new(player));
+    let player = Rc::new(RwLock::new(player));
+    let board = Rc::new(RwLock::new(board));
     
     renderer.add_object::<BaseUniform>(PipelineObject::Base(
         Rc::downgrade(&player) as Weak<RwLock<dyn Renderable<BaseUniform>>>
     ));
+    renderer.add_object::<BaseUniform>(PipelineObject::Base(
+        Rc::downgrade(&board) as Weak<RwLock<dyn Renderable<BaseUniform>>>
+    ));
+    
+    // let test = BulletType::init(String::from("basic"), true);
     
     let mut prev_time = Instant::now();
     
@@ -53,7 +58,7 @@ async fn main() {
             
             let axis = get_movement_vec();
         
-            let temp = player.movement(axis, board.bounds);
+            player.movement(axis, board.read().unwrap().bounds);
         }
         
         clear_background(BLACK);
@@ -63,9 +68,7 @@ async fn main() {
             // Ensure that macroquad's shapes are not going to be lost
             gl.flush();
 
-            board.render(&mut gl, dt, &cam);
-            // player.render(&mut gl, dt, &cam);
-            
+         
             renderer.render(&mut gl, dt, &cam);
             
             

@@ -1,6 +1,8 @@
 use miniquad::ShaderError;
 use native_dialog::MessageDialog;
 
+use crate::scripting::error::ScriptError;
+
 
 pub fn crash_and_burn(error: FinalError) -> ! {
     MessageDialog::new()
@@ -14,7 +16,7 @@ pub fn crash_and_burn(error: FinalError) -> ! {
 }
 
 pub enum FinalError {
-    Scripting,
+    Scripting { reason: String },
     Shader { reason: String },
     
     Unknown
@@ -24,7 +26,7 @@ impl FinalError {
     pub fn get_error_type(&self) -> &'static str {
         #[allow(unreachable_patterns)]
         match self {
-            Self::Scripting => "Script Error",
+            Self::Scripting { reason: _ }=> "Script Error",
             Self::Unknown => "Unknown Error",
             Self::Shader { reason: _} => "Shader Error: ",
             _ => "Unimplemented Error"
@@ -42,5 +44,21 @@ impl FinalError {
 impl From<ShaderError> for FinalError {
     fn from(err: ShaderError) -> Self {
         Self::Shader { reason: err.to_string() }
+    }
+}
+
+impl From<ScriptError> for FinalError {
+    fn from(err: ScriptError) -> Self {
+        match err {
+            ScriptError::MissingFunc { name, file } => {
+                Self::Scripting { reason: format!("Expected function {name}\nSouce: {file}") }
+            },
+            ScriptError::IncompatibleFunc { name, expected, got, file } => {
+                Self::Scripting { reason: format!("Function {name} is incompatible\nExpected: {expected:?}\nGot: {got:?}\nSource: {file}") }
+            },
+            ScriptError::BadValue { name, file } => {
+                Self::Scripting { reason: format!("Value {name} is void/incorrect type\nSource: {file}") }
+            }
+        }
     }
 }
